@@ -27,7 +27,7 @@ function len_K_clc(len_left, len_right)
     syms fl fr Fwsl Fwsr Fbsl Fbsr Fwhl Fwhr Fbhl Fbhr
 
     % 各类会随着时间变化的值 - 定义为时间函数
-    syms theta_wr(t) theta_wl(t) theta_lr(t) theta_ll(t) Sb(t) theta_b(t) phi(t)
+    syms theta_wr(t) theta_wl(t) theta_lr(t) theta_ll(t) Sb(t) theta_b(t) phi(t) S(t)
     
     % =============================================
     % 关键修改：在计算导数之前就应用小角度近似
@@ -41,7 +41,7 @@ function len_K_clc(len_left, len_right)
     Sll = Rw*theta_wl(t)+lwl*sin(theta_ll(t));
     hll = hb - lbr*cos(theta_lr(t));
     hlr = hb - lbl*cos(theta_ll(t));
-    
+    S = Rw*(theta_wl + theta_wr)/2;
     
     % =============================================
     % 现在计算基于近似后表达式的导数
@@ -66,6 +66,8 @@ function len_K_clc(len_left, len_right)
     dot_hlr = diff(hlr,t);
     ddot_hlr = diff(hlr,t,2);
         
+    dot_S = diff(S,t);
+    ddot_S = diff(S,t,2);
     % 应用小角度近似到基础表达式
     % 定义替换规则
     old_expr = [sin(theta_ll(t)), cos(theta_ll(t)), ...
@@ -182,5 +184,4 @@ function len_K_clc(len_left, len_right)
     fprintf('ddot_Sb = %s\n', char(ddot_Sb));
 
     disp("Finish - 小角度近似已正确应用")
-    disp(ddot_Sll);
 end
