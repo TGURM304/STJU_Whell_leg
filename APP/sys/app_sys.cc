@@ -23,7 +23,7 @@
 #include <cstring>
 
 #include "bsp_def.h"
-
+#include "iwdg.h"
 #include "app_msg.h"
 #include "app_referee.h"
 #include "app_sys_err.h"
@@ -102,6 +102,7 @@ void app_sys_task() {
     app_sys_init();
     bsp_led_set(0, 255, 0);
     while(app_ins_status() != 2)
+        HAL_IWDG_Refresh(&hiwdg1),
         OS::Task::SleepMilliseconds(1);
     if(!app_sys_err()) {
         // bsp_buzzer_flash(1976, 0.5, 125);
@@ -118,6 +119,7 @@ void app_sys_task() {
             if(++g > 50) g = -50;
             if(++b > 50) b = -50;
             OS::Task::SleepMilliseconds(10);
+            HAL_IWDG_Refresh(&hiwdg1);
         } else {
             // FLASH 描述符错误，黄灯快闪
             if(app_sys_err_check(SYS_ERR_FLASH_WRONG_BRIEF)) bsp_led_set(50, 50, 0);
@@ -125,6 +127,7 @@ void app_sys_task() {
             bsp_led_set(0, 0, 0);
             OS::Task::SleepMilliseconds(100);
         }
+        HAL_IWDG_Refresh(&hiwdg1);
     }
 }
 
