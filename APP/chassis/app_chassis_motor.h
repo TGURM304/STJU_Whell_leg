@@ -32,9 +32,9 @@ public:
     dynamic();
     dynamic(Motor::DJIMotor *dynamic_motor, float32_t dir);
     void init();
-    void tor_ctrl(float32_t tor);
-    float32_t get_deg();
-    float32_t get_v();
+    void tor_ctrl(float32_t tor); // 输入目标扭矩
+    float32_t get_deg(); //返回单位rad
+    float32_t get_v(); //返回单位rad/s
 private:
     Motor::DJIMotor *dynamic_motor_;
     float32_t dir_;
