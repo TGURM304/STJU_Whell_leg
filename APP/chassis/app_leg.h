@@ -14,6 +14,8 @@ struct leg_status {
     float32_t L0;
     float32_t leg_x, leg_y;
     float32_t xd, yd, xb, yb;
+    float32_t distance;
+    float32_t ver;
 };
 struct out_put {
     float32_t tor_JE, tor_JA;
