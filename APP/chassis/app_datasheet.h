@@ -23,6 +23,6 @@
 #define BODY_L 0.005f
 #define BODY_Im (BODY_L*BODY_L*BODY_M)
 
-#define MOTOR_GEAR (3591.0/187.0)
+#define MOTOR_GEAR (3591.0f/187.0f)
 
 #endif //APP_WHEEL_LEG_DATASHEET_H

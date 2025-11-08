@@ -30,7 +30,7 @@ RecvPacket *vision::recv() {
     return &rx_packet;
 }
 
-static auto ins = app_ins_data();
+static const app_ins_data_t *ins = app_ins_data();
 
 void vision::send(uint8_t detect_color, bool reset_tracker) {
     SendPacket pkg = {
