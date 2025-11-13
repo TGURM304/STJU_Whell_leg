@@ -33,6 +33,7 @@ syms T_lwl T_lwr T_bll T_blr
 % 输入物理参数：重力加速度
 syms g
 
+%-------------------------------------------------------------------------------------------------%
 %方程运动学约束
 S = R_w*(theta_wl+theta_wr)/2;
 phi = R_w*(theta_wr - theta_wl)/(2*R_l) + l_r*sin(theta_lr)/(2*R_l) - l_l*sin(theta_ll)/(2*R_l);
@@ -67,50 +68,51 @@ ddhll = ddhb + l_bl*sin(theta_ll)*ddtheta_ll + l_bl*cos(theta_ll)*dtheta_ll*dthe
 dhlr = dhb + l_br*sin(theta_lr)*dtheta_lr;
 ddhlr = ddhb + l_br*sin(theta_lr)*ddtheta_lr + l_br*cos(theta_lr)*dtheta_lr*dtheta_lr;
 
-%中间变量约束
-Fwhl = m_l*(ddhll + ddhlr) + (m_b*ddhb)/2 + m_l*g + m_b*g/2;
-Fwhr = m_l*(ddhll + ddhlr) + (m_b*ddhb)/2 + m_l*g + m_b*g/2;
-Fbhl = Fwhl - m_l*g - m_l*ddhll;
-Fbhr = Fwhr - m_l*g - m_l*ddhlr;
-fl = (T_lwl - I_w*ddtheta_wl)/R_w;
-fr = (T_lwr - I_w*ddtheta_wr)/R_w;
-Fwsl = fl - m_w*R_w*ddtheta_wl;
-Fwsr = fr - m_w*R_w*ddtheta_wr;
-Fbsl = Fwsl - m_l*ddsll;
-Fbsr = Fwsr - m_l*ddslr;
-
-
+%进行小角度近似后
+ddphi = R_w*(-ddtheta_wl+ddtheta_wr)/(2*R_l) - l_l*theta_ll*ddtheta_ll/(2*R_l) + l_r*ddtheta_lr/(2*R_l);
+ddSb = R_w*(ddtheta_wl+ddtheta_wr)/2 + l_l*ddtheta_ll/2 + l_r*ddtheta_lr/2;
+ddhb = -l_l*theta_ll*ddtheta_ll/2 - l_r*theta_lr*ddtheta_lr/2;
+ddhll = ddhb + l_bl*theta_ll*ddtheta_ll;
+ddhlr = ddhb + l_br*theta_lr*ddtheta_lr;
+ddslr = R_w*ddtheta_wr + l_wr*ddtheta_lr;
+ddsll = R_w*ddtheta_wl + l_wl*ddtheta_ll;
 %动力学方程十五则
-eq10 = m_w*R_w*ddtheta_wl - fl - Fwsl;
-eq11 = m_w*R_w*ddtheta_wr - fr - Fwsr;
-eq12 = I_w*ddtheta_wl - T_lwl - fl*R_w;
-eq13 = I_w*ddtheta_wr - T_lwr - fr*R_w;
-eq1 = m_l*ddslr - (Fwsr - Fbsr);
-eq2 = m_l*ddsll - (Fwsl - Fbsl);
-eq3 = m_l*ddhll -(Fwhl - Fbhl - m_l*g);
-eq4 = m_l*ddhlr - (Fwhr - Fbhr - m_l*g);
-eq5 = I_ll*ddtheta_ll - ((Fwhl*l_wl + Fbhl*l_bl)*sin(theta_ll) - (Fwsl*l_bl + Fbsl*l_bl)*cos(theta_ll)-T_lwl+T_bll);
-eq6 = I_lr*ddtheta_lr - ((Fwhr*l_wr + Fbhr*l_br)*sin(theta_lr) - (Fwsl*l_br + Fbsr*l_br)*cos(theta_lr)-T_lwr+T_blr);
-eq7 = m_b*ddSb - (Fbsl + Fbsr);
-eq8 = m_b*ddhb - (Fbhl + Fbhr);
-eq9 = I_b*ddtheta_b - (-(T_bll + T_blr) - (Fbsl + Fbsr)*l_c*cos(theta_b) + (Fbhl + Fbhr)*l_c*sin(theta_b));
-eq14 = I_z*ddphi - ((-fl + fr)*R_l); 
-eq15 = Fwhl - Fwhr;
-eq16 = S - R_w*(theta_wl + theta_wr)/2;
+eq10 = m_w*R_w*ddtheta_wl - fl - Fwsl == 0;
+eq11 = m_w*R_w*ddtheta_wr - fr - Fwsr == 0;
+eq12 = I_w*ddtheta_wl - T_lwl - fl*R_w == 0;
+eq13 = I_w*ddtheta_wr - T_lwr - fr*R_w == 0;
+eq1 = m_l*ddslr - (Fwsr - Fbsr) == 0;
+eq2 = m_l*ddsll - (Fwsl - Fbsl) == 0;
+eq3 = m_l*ddhll -(Fwhl - Fbhl - m_l*g) == 0;
+eq4 = m_l*ddhlr - (Fwhr - Fbhr - m_l*g) == 0;
+eq5 = I_ll*ddtheta_ll - ((Fwhl*l_wl + Fbhl*l_bl)*sin(theta_ll) - (Fwsl*l_bl + Fbsl*l_bl)*cos(theta_ll)-T_lwl+T_bll) == 0;
+eq6 = I_lr*ddtheta_lr - ((Fwhr*l_wr + Fbhr*l_br)*sin(theta_lr) - (Fwsl*l_br + Fbsr*l_br)*cos(theta_lr)-T_lwr+T_blr) == 0;
+eq7 = m_b*ddSb - (Fbsl + Fbsr) == 0;
+eq8 = m_b*ddhb - (Fbhl + Fbhr) == 0;
+eq9 = I_b*ddtheta_b - (-(T_bll + T_blr) - (Fbsl + Fbsr)*l_c*cos(theta_b) + (Fbhl + Fbhr)*l_c*sin(theta_b)) == 0;
+eq14 = I_z*ddphi - ((-fl + fr)*R_l) == 0; 
+eq15 = Fwhl - Fwhr == 0;
+eq16 = S - R_w*(theta_wl + theta_wr)/2 == 0;
 
-eqations = [eq10, eq11, eq12, eq13, eq5, eq6, eq9];
+eqations = [eq1,eq2,eq3,eq4,eq5,eq6,eq7,eq8,eq9,eq10,eq11,eq12,eq13,eq13,eq14,eq15,eq16,ddphi,ddSb,ddhb,ddsll,ddslr,ddhlr,ddhll];
 vars =  [theta_ll, theta_lr, theta_b];
+vars_dot = [dtheta_ll, dtheta_lr, dtheta_b];
 %小角度近似
 for v = vars
     eqations = subs(eqations, sin(v),v);
     eqations = subs(eqations, cos(v),1);
 end
+for v = vars_dot
+    eqations = subs(eqations, v,0);
+end
 disp(eqations);
 
 target = [ddtheta_wl, ddtheta_wr, ddtheta_ll, ddtheta_lr, ddtheta_b];
-% %查矩阵的秩
-% [Aeq, beq] = equationsToMatrix(eqations, target);
-% disp(rank(Aeq));
+%查矩阵的秩
+[Aeq, beq] = equationsToMatrix(eqations, target);
+disp(rank(Aeq));
 disp("clc_start")
-temp = solve([eq10, eq11, eq12, eq13, eq5, eq6, eq9],[ddtheta_wl, ddtheta_wr, ddtheta_ll, ddtheta_lr, ddtheta_b]);
+temp = solve(eq1,eq2,eq3,eq4,eq5,eq6,eq7,eq8,eq9,eq10,eq11,eq12,eq13,eq13,eq14,eq15,eq16,target);
 disp("clc_end")
+disp(temp);
+disp("end");
