@@ -105,7 +105,17 @@ eq12 = m_b*ddhb - (Fbhl+Fbhr-m_b*g) == 0;
 eq13 = I_b*ddtheta_b == -(T_bll+T_blr)-(Fbsl+Fbsr)*l_c*cos(theta_b)+(Fbhl+Fbhr)*l_c*sin(theta_b);
 eq14 = I_z*ddphi == (-fl+fr)*R_l;
 eq15 = Fwhl-Fwhr == 0;
-
+%%STJU answer
+sj_eq1 = (I_z*R_w/(2*R_l)+R_l*I_w/R_w)*ddtheta_wl - (I_z*R_w/(2*R_l)+R_l*I_w/R_w)*ddtheta_wr ...
+- R_l*T_lwl/R_w + R_l*T_lwr/R_w+I_z*l_l*ddtheta_ll/(2*R_l) - I_z*l_r*ddtheta_lr/(2*R_l) == 0;
+sj_eq2 = (m_l*l_wl+m_b*l_l/2)*g*theta_ll + ((I_w/R_w + m_w*R_w)*l_l+m_l*R_w*l_bl)*ddtheta_wl ...
++ (m_l*l_wl*l_bl - I_ll)*ddtheta_ll - (1+l_l/R_w)*T_lwl+T_bll;
+sj_eq3 = (m_l*l_wr+m_b*l_r/2)*g*theta_lr + ((I_w/R_w + m_w*R_w)*l_r+m_l*R_w*l_br)*ddtheta_wr ...
++ (m_l*l_wr*l_br - I_lr)*ddtheta_lr - (1+l_r/R_w)*T_lwr+T_blr;
+sj_eq4 = -(I_w/R_w+m_w*R_w+m_l*R_w+m_b*R_w/2)*(ddtheta_wl+ddtheta_wr)-(m_l*l_wl+m_b*l_l/2)*ddtheta_ll ...
+- (m_l*l_wr + m_b*l_r/2)*ddtheta_lr + T_lwl/R_w + T_lwr/R_w == 0;
+sj_eq5 = l_c*(I_w/R_w + m_w*R_w+m_l*R_w)*(ddtheta_wl+ddtheta_wr) - m_l*l_wl*l_c*ddtheta_ll ...
+- m_l*l_wr*l_c*ddtheta_lr - l_c*(T_lwr+T_lwl)/R_w - (T_bll+T_blr) + l_c*m_b*g*theta_b - I_b*ddtheta_b == 0;
 %%建立替换规则的元胞数组，通过管理rules来实现管理替换变量
 rules = {
     Fwhr,m_l*ddhlr + m_l*g + Fbhr;
@@ -141,17 +151,12 @@ rules = {
     dtheta_lr, 0;
     dtheta_b, 0;
 };
-change = [eq14,eq9,eq10,eq11,eq13];
-var = [ddtheta_wl,ddtheta_wr,ddtheta_ll,ddtheta_lr,ddtheta_b];
+eqations = [sj_eq1, sj_eq2, sj_eq3, sj_eq4, sj_eq5];
+target = [ddtheta_wl,ddtheta_wr,ddtheta_ll, ddtheta_lr, ddtheta_b];
 for i = 1:size(rules,1)
-    change = subs(change,rules(i,1),rules(i,2));
+    eqations = subs(eqations,rules(i,1),rules(i,2));
 end
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-answer = solve(change,var)
+answer = solve(eqations,target)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 此处输入机器人的实际参数
 % sym_2_real = {
@@ -197,22 +202,19 @@ sym_2_real = {
     };
 %变量：R_l
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%这里是高阶小量，
+
+small = [theta_ll, theta_lr, theta_b];
 ddtheta_wl_sol = answer.ddtheta_wl;
 ddtheta_wr_sol = answer.ddtheta_wr;
 ddtheta_ll_sol = answer.ddtheta_ll;
 ddtheta_lr_sol = answer.ddtheta_lr;
-ddtheta_b_sol  = answer.ddtheta_b;
-%%这里是高阶小量，
-
-small = [theta_ll, theta_lr, theta_b];
-
+ddtheta_b_sol = answer.ddtheta_b;
 ddtheta_wl_sol = taylor(ddtheta_wl_sol, [theta_ll, theta_lr, theta_b], 'Order', 2);
 ddtheta_wr_sol = taylor(ddtheta_wr_sol, [theta_ll, theta_lr, theta_b], 'Order', 2);
 ddtheta_ll_sol = taylor(ddtheta_ll_sol, [theta_ll, theta_lr, theta_b], 'Order', 2);
 ddtheta_lr_sol = taylor(ddtheta_lr_sol, [theta_ll, theta_lr, theta_b], 'Order', 2);
 ddtheta_b_sol = taylor(ddtheta_b_sol, [theta_ll, theta_lr, theta_b], 'Order', 2);
-
-
 formulas = [ddtheta_wl_sol,ddtheta_wr_sol,ddtheta_ll_sol,ddtheta_lr_sol,ddtheta_b_sol];
 for i = 1:size(sym_2_real,1)
     formulas = subs(formulas,sym_2_real(i,1),sym_2_real(i,2));
@@ -220,6 +222,17 @@ end
 for i = 1:length(formulas)
     disp(formulas(i));
 end
+
+% for i = 1:size(sym_2_real,1)
+%     answer = subs(answer,sym_2_real(i,1),sym_2_real(i,2));
+% end
+% formulas = [ddtheta_wl_sol,ddtheta_wr_sol,ddtheta_ll_sol,ddtheta_lr_sol,ddtheta_b_sol];
+% for i = 1:size(sym_2_real,1)
+%     formulas = subs(formulas,sym_2_real(i,1),sym_2_real(i,2));
+% end
+% for i = 1:length(formulas)
+%     disp(formulas(i));
+% end
 jacobian_x = [theta_ll,theta_lr,theta_b];
 jacobian_u = [T_lwl,T_lwr,T_bll,T_blr];
 
