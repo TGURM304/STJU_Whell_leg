@@ -70,5 +70,5 @@ float32_t wheel_leg_motor::dynamic::get_deg() {
     return this->total_deg;
 }
 float32_t wheel_leg_motor::dynamic::get_v(){
-    return dynamic_motor_->status.speed*2*PI_F32/60.0f;
+    return dir_*dynamic_motor_->status.speed*2*PI_F32/60.0f;
 }

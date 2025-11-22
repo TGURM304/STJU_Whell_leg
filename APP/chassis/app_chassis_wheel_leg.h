@@ -80,6 +80,9 @@ typedef enum {
         chassis_state my_state_;
         chassis_output my_output_;
         chassis_target my_target_;
+        //用于计算Matrix
+        float32_t ary_state[10] = {0};
+        float32_t ary_target[10] = {0};
         //控制器与滤波器
         Controller::PID left_pid_;
         Controller::PID right_pid_;

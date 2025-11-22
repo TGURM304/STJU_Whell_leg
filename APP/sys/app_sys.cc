@@ -31,7 +31,7 @@
 #include "app_terminal.h"
 #include "bsp_flash.h"
 #include "usb_device.h"
-
+#include "app_debug.h"
 bool inited_ = false;
 
 bool app_sys_ready() {
