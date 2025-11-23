@@ -9,6 +9,7 @@
 #include "app_chassis_motor.h"
 #include "app_chassis_wheel_leg.h"
 #include "app_datasheet.h"
+#include "app_debug.h"
 #include "app_ins.h"
 #include "app_leg.h"
 #include "bsp_rc.h"
@@ -76,8 +77,8 @@ wheel_leg_motor::dynamic left_dynamic(&left_dji, 1);
 chassis_Leg::App_Leg right_leg(&right_A, &right_E, &right_dynamic);
 chassis_Leg::App_Leg left_leg(&left_A, &left_E, &left_dynamic);
 const app_ins_data_t *ins = app_ins_data();
-float static_K[40] = {-3.16021f, -2.9304f, -0.164658f, -0.222398f, -4.51869f, -1.12821f, -2.22907f, -0.129923f, -0.967312f, -0.15795f, -3.16021f, -2.9304f, 0.164658f, 0.222398f, -2.22907f, -0.129923f, -4.51869f, -1.12821f, -0.967312f, -0.15795f, -0.161891f, -0.130852f, -0.97251f, -1.18862f, 1.48938f, 0.231405f, -1.04259f, -0.0070588f, -2.49032f, -0.995234f, -0.161891f, -0.130852f, 0.97251f, 1.18862f, -1.04259f, -0.0070588f, 1.48938f, 0.231405f, -2.49032f, -0.995234f};
-;
+float static_K[40] = {-3.14537f, -2.8707f, 0.623247f, 0.233007f, -4.36555f, -1.10713f, -2.16955f, -0.155681f, -0.82658f, -0.10262f, -3.14537f, -2.8707f, -0.623247f, -0.233007f, -2.16955f, -0.155681f, -4.36555f, -1.10713f, -0.82658f, -0.10262f, -0.326573f, -0.270589f, -2.66675f, -1.57233f, 0.565233f, -0.135067f, -0.678189f, 0.198023f, -1.89352f, -0.71604f, -0.326573f, -0.270589f, 2.66675f, 1.57233f, -0.678189f, 0.198023f, 0.565233f, -0.135067f, -1.89352f, -0.71604f};
+
 wheel_leg::SJTU_wheel_leg my_chassis(&left_leg,&right_leg,ins,static_K);
 
 auto rc = bsp_rc_data();
@@ -86,14 +87,11 @@ void app_chassis_task(void *args) {
 	while(!app_sys_ready()) OS::Task::SleepMilliseconds(10);
     my_chassis.wheel_leg_init();
     while(true) {
-        if(rc->s_l == 1)my_chassis.wheel_leg_update(0.12,0,0,wheel_leg::E_stand,wheel_leg::E_LQR_static);
-        else my_chassis.wheel_leg_update(0.12,0,0,wheel_leg::E_waiting,wheel_leg::E_LQR_static);
-
+        if(rc->s_l == 1)my_chassis.wheel_leg_update(0.12,-(float32_t)(rc->reserved)/660.f/1000,(float32_t)(rc->rc_l[1])/660.f/1000,0,wheel_leg::E_stand,wheel_leg::E_LQR_static);
+        else my_chassis.wheel_leg_update(0.12,0,0,0,wheel_leg::E_waiting,wheel_leg::E_LQR_static);
         my_chassis.wheel_leg_ctrl();
-	    // bsp_uart_printf(E_UART_DEBUG,"%f,%f,%f,%f\n",right_leg.my_leg_status_.L0,right_leg.my_leg_status_.phi0,right_leg.joint_E_->joint_deg_,right_leg.joint_A_->joint_deg_);
-        // bsp_uart_printf(E_UART_DEBUG,"%f,%f\n",right_leg.my_out_put_.tor_JA,right_leg.my_out_put_.tor_JE);
-        // bsp_uart_printf(E_UART_DEBUG,"%f,%f,%f,%f,%f,%f,%f\n",right_leg.my_leg_status_.phi0,right_leg.my_leg_status_.phi1,right_leg.my_leg_status_.phi2,right_leg.my_leg_status_.phi3,right_leg.my_leg_status_.phi4,right_leg.joint_A_->joint_deg_,right_leg.joint_E_->joint_deg_);
-        // bsp_uart_printf(E_UART_DEBUG,"%f,%f,%f\n",ins->roll,ins->pitch,ins->raw.gyro[0]);
+        if(AppDebug::DEBUG_TYPE == AppDebug::FREE_DEBUG)
+            bsp_uart_printf(E_UART_DEBUG,"%d,%d,%d\n",rc->rc_l[0],rc->rc_l[1],rc->reserved);
 	    OS::Task::SleepMilliseconds(1);
 	}
 }

@@ -8,7 +8,7 @@
 #include "bsp_uart.h"
 #include "app_debug.h"
 
-#define FORWARD (-12)
+#define FORWARD (12)
 
 void wheel_leg::SJTU_wheel_leg::state_update() {
     auto p = &my_state_;
@@ -57,6 +57,13 @@ void wheel_leg::SJTU_wheel_leg::wheel_leg_update(float32_t height, float32_t yaw
     my_target_.right_len = height;
     my_target_.my_chassis_flag = c_flag_;
     my_target_.my_LQR_flag = l_flag;
+    my_target_.body_ver = speed;
+    my_target_.target_yaw += yaw;
+    if(my_target_.target_yaw > PI_F32/2) my_target_.target_yaw = PI_F32/2;
+    else if (my_target_.target_yaw < -PI_F32/2) my_target_.target_yaw = -PI_F32/2;
+    ary_target[0] = my_target_.body_S;
+    ary_target[1] = my_target_.body_ver;
+    ary_target[2] = my_target_.target_yaw;
 }
 
 void wheel_leg::SJTU_wheel_leg::wheel_leg_ctrl() {
@@ -68,8 +75,6 @@ void wheel_leg::SJTU_wheel_leg::wheel_leg_ctrl() {
     if(my_target_.my_chassis_flag == E_stand) {
         left_leg_->leg_ctrl(my_output_.Tlw_l,my_output_.Tbl_l,my_output_.Force_stand_l);
         right_leg_->leg_ctrl(my_output_.Tlw_r,my_output_.Tbl_r,my_output_.Force_stand_r);
-        // left_leg_->leg_ctrl(0,0,0);
-        // right_leg_->leg_ctrl(0,0,0);
     }
     else if(my_target_.my_chassis_flag == E_waiting) {
         left_leg_->leg_ctrl(0,0,0);
@@ -80,9 +85,6 @@ void wheel_leg::SJTU_wheel_leg::wheel_leg_ctrl() {
         auto p = my_output_;
         bsp_uart_printf(E_UART_DEBUG,"%f,%f,%f,%f\n",p.Tlw_l,p.Tlw_r,p.Tbl_l,p.Tbl_r);
     }
-
-    // left_leg_->leg_ctrl(my_output_.Tlw_l,my_output_.Tbl_l,my_output_.Force_stand_l+my_output_.Force_other_l);
-    // right_leg_->leg_ctrl(my_output_.Tlw_r,my_output_.Tbl_r,my_output_.Force_stand_r+my_output_.Force_other_r);
 }
 
 void wheel_leg::SJTU_wheel_leg::LQR_clc() {
@@ -92,7 +94,7 @@ void wheel_leg::SJTU_wheel_leg::LQR_clc() {
     Matrixf<4,1> Matrix_answer;
     if(state_flag == E_LQR_static) {
         Matrixf<4,10> Matrix_K(static_K_);
-        Matrix_answer = (-1)*Matrix_K*Matrix_state;
+        Matrix_answer = Matrix_K*(Matrix_target - Matrix_state);
         my_output_.Tlw_l = Matrix_answer[0][0];
         my_output_.Tlw_r = Matrix_answer[1][0];
         my_output_.Tbl_l = Matrix_answer[2][0];

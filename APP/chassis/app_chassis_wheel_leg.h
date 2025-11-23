@@ -11,8 +11,8 @@
 
 #define MID_AVG_SIZE 10
 
-#define LEN_KP 300
-#define LEN_KD 2
+#define LEN_KP 500
+#define LEN_KD 10
 #define LEN_OUT_LIMIT 30
 #define LEN_I_LIMIT 0
 namespace wheel_leg {
@@ -44,6 +44,7 @@ struct chassis_target {
     float32_t left_len, right_len;
     float32_t left_dis, right_dis;
     float32_t left_ver, right_ver;
+    float32_t body_S, body_ver;
     float32_t target_yaw;
     chassis_flag my_chassis_flag;
     LQR_flag my_LQR_flag;

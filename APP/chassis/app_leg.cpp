@@ -22,9 +22,6 @@ void chassis_Leg::App_Leg::leg_ctrl(float32_t Tlw, float32_t Tbl, float32_t forc
     joint_A_->joint_ctrl(my_out_put_.tor_JA);
     joint_E_->joint_ctrl(my_out_put_.tor_JE);
     dynamic_motor_->tor_ctrl(my_out_put_.tor_dynamic);
-    // joint_A_->joint_ctrl(0);
-    // joint_E_->joint_ctrl(0);
-    // dynamic_motor_->tor_ctrl(0);
 }
 
 void chassis_Leg::App_Leg::leg_vmc_ctrl() {
