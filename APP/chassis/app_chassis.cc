@@ -82,14 +82,27 @@ float static_K[40] = {-2.23564f, -2.52152f, 0.0447609f, -0.125415f, -4.35891f, -
 wheel_leg::SJTU_wheel_leg my_chassis(&left_leg,&right_leg,ins,static_K);
 
 auto rc = bsp_rc_data();
+wheel_leg::update_pkg pkg;
 void app_chassis_task(void *args) {
 	// Wait for system init.
 	while(!app_sys_ready()) OS::Task::SleepMilliseconds(10);
     my_chassis.wheel_leg_init();
     while(true) {
-        if(rc->s_l == 1)
-            my_chassis.wheel_leg_update(0.12,-(float32_t)(rc->reserved)/660.f,(float32_t)(rc->rc_l[1])/330.f,wheel_leg::E_stand,wheel_leg::E_LQR_static);
-        else my_chassis.wheel_leg_update(0.12,0,0,wheel_leg::E_waiting,wheel_leg::E_LQR_static);
+        if(rc->s_l == 1) {
+            pkg.c_flag_ = wheel_leg::main_flag::E_stand;
+            pkg.height = 0.12;
+            pkg.lqr_flag = wheel_leg::LQR_flag::E_LQR_static;
+            pkg.speed = (float32_t)rc->rc_l[1]/660.f*0.5f;
+            pkg.yaw_gro = (float32_t)rc->reserved/660.f;
+        }
+        else {
+            pkg.c_flag_ = wheel_leg::main_flag::E_waiting;
+            pkg.height = 0;
+            pkg.lqr_flag = wheel_leg::LQR_flag::E_disable;
+            pkg.speed = 0;
+            pkg.yaw_gro = 0;
+        }
+        my_chassis.wheel_leg_update(&pkg);
         my_chassis.wheel_leg_ctrl();
         if(AppDebug::DEBUG_TYPE == AppDebug::FREE_DEBUG)
             bsp_uart_printf(E_UART_DEBUG,"%f,%f\n",(float32_t)(rc->reserved)/660.f,(float32_t)(rc->rc_l[1])/660.f);

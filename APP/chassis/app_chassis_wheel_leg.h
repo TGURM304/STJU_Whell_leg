@@ -16,41 +16,16 @@
 #define LEN_OUT_LIMIT 30
 #define LEN_I_LIMIT 0
 namespace wheel_leg {
-struct chassis_state {
-    float S, dot_S, phi, dot_phi;//轮两点连线中点的位移，yaw轴
-    float real_phi;
-    float theta_ll, dot_theta_ll, theta_lr, dot_theta_lr;//腿的左边倾角，腿的右边倾角
-    float theta_b ,dot_theta_b;//车体的倾角
-    float leg_phi_l, leg_phi_r;
-    float old_theta_ll ,old_theta_lr;
-    float32_t left_len, right_len;
-};
-struct chassis_output {
-    float Tlw_l, Tlw_r;//轮子的扭矩
-    float Tbl_l, Tbl_r;//车对腿的扭矩
-    float Force_stand_l, Force_stand_r;
-    float32_t Force_other_l, Force_other_r;
-};
 typedef enum {
     E_waiting,
     E_sit,
     E_stand
-}chassis_flag ;
+}main_flag ;
 typedef enum {
     E_LQR_static,
     E_LQR_dynamic,
     E_disable
 }LQR_flag;
-struct chassis_target {
-    float32_t left_len, right_len;
-    float32_t left_dis, right_dis;
-    float32_t left_ver, right_ver;
-    float32_t body_S, body_ver;
-    float32_t old_body_S;
-    float32_t delta_yaw, target_yaw_gro, real_target_yaw;
-    chassis_flag my_chassis_flag;
-    LQR_flag my_LQR_flag;
-};
 struct mid_filter {
     float32_t dataBuf[MID_AVG_SIZE] = {0};
     uint8_t index = 0;
@@ -59,7 +34,49 @@ typedef enum {
     E_left,
     E_right
 }side_select;
-    class SJTU_wheel_leg {
+typedef enum{
+    E_chassis_stop = 0x01,
+    E_chassis_move = 0x01 << 1,
+    E_chassis_disable = 0x01 << 2
+}chassis_move_flag;
+typedef struct {
+    float32_t height;
+    float32_t yaw_gro;
+    float32_t speed;
+    main_flag c_flag_;
+    LQR_flag lqr_flag;
+}update_pkg;
+
+struct chassis_state {
+    float S, dot_S, old_S, phi, dot_phi;//轮两点连线中点的位移，yaw轴
+    float kalman_dot_S;
+    float real_phi;
+    float theta_ll, dot_theta_ll, theta_lr, dot_theta_lr;//腿的左边倾角，腿的右边倾角
+    float theta_b ,dot_theta_b;//车体的倾角
+    float leg_phi_l, leg_phi_r;
+    float old_theta_ll ,old_theta_lr;
+    float left_len, right_len;
+};
+struct chassis_output {
+    float Tlw_l, Tlw_r;//轮子的扭矩
+    float Tbl_l, Tbl_r;//车对腿的扭矩
+    float Force_stand_l, Force_stand_r;
+    float32_t Force_other_l, Force_other_r;
+};
+typedef struct {
+    chassis_move_flag cmf;
+    main_flag mf;
+    LQR_flag lqr_flag;
+}chassis_flags;
+struct chassis_target {
+    float32_t height;
+    float32_t left_len, right_len;
+    float32_t body_S, body_ver;
+    float32_t target_yaw_gro, target_yaw;
+};
+
+
+class SJTU_wheel_leg {
     public:
         SJTU_wheel_leg();
         SJTU_wheel_leg(chassis_Leg::App_Leg *left_leg, chassis_Leg::App_Leg *right_leg,const app_ins_data_t *ins, float32_t *static_K)
@@ -69,11 +86,14 @@ typedef enum {
             memcpy(static_K_,static_K,sizeof(float32_t)*40);
         }
         void wheel_leg_init() ;
-        void wheel_leg_update(float32_t height, float32_t yaw_gro, float32_t speed, chassis_flag c_flag_, LQR_flag l_flag);
+        void wheel_leg_update(update_pkg *pkg);
         void wheel_leg_ctrl();
     private:
         void LQR_clc();
         void state_update();
+        void target_update(update_pkg *pkg);
+        void flag_update(update_pkg *pkg);
+        void delta_clc(update_pkg *pkg);
         //承接底层框架
         chassis_Leg::App_Leg *left_leg_;
         chassis_Leg::App_Leg *right_leg_;
@@ -84,15 +104,14 @@ typedef enum {
         chassis_output my_output_;
         chassis_target my_target_;
         //用于计算Matrix
-        float32_t ary_state[10] = {0};
-        float32_t ary_target[10] = {0};
+        float32_t ary_delta[10];
         //控制器与滤波器
         Controller::PID left_pid_;
         Controller::PID right_pid_;
         Algorithm::AverageFilter left_filter_;
         Algorithm::AverageFilter right_filter_;
+        chassis_flags my_flags_;
         float32_t static_K_[40];
-
     };
 }
 
