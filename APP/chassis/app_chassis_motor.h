@@ -20,13 +20,14 @@ class joint {
     }
     void init();
     void joint_ctrl(float tor);
-    void joint_ctrl(float P, float I, float D, float sum_limit, float I_limit, float target_pos);//重载了位置PID
+    void joint_ctrl(float P, float I, float D, float out_limit, float I_limit, float target_pos);//重载了位置PID
     float32_t zero_, dir_, joint_deg_, joint_v_;
 private:
     void joint_deg_clc();
     Motor::DMMotor *joint_;
     float32_t old_pos_ = 0, old_err_ = 0, out_sum_ = 0, out_i_ = 0, out_p_ = 0, out_d_ = 0;
 };
+
 class dynamic {
 public:
     dynamic();

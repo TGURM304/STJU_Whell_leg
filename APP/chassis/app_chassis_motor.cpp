@@ -16,12 +16,11 @@ void wheel_leg_motor::joint::joint_deg_clc() {
     if(temp_deg < -PI_F32/2) temp_deg = 2 * PI_F32 - temp_deg;
     this->joint_deg_ = temp_deg;
 }
-
 void wheel_leg_motor::joint::joint_ctrl(float tor) {
     joint_deg_clc();
     joint_->control(0,0,0,0,tor*dir_);
 }
-void wheel_leg_motor::joint::joint_ctrl(float P, float I, float D, float sum_limit, float I_limit, float target_pos) {
+void wheel_leg_motor::joint::joint_ctrl(float P, float I, float D, float out_limit, float I_limit, float target_pos) {
     joint_deg_clc();
     float32_t temp_deg;
     temp_deg = this->joint_deg_;
@@ -33,7 +32,7 @@ void wheel_leg_motor::joint::joint_ctrl(float P, float I, float D, float sum_lim
     old_pos_ = target_pos;
     out_i_ = out_i_ > I_limit? I_limit: out_i_< -I_limit? -I_limit:out_i_;
     out_sum_ = out_p_ + out_i_ + out_d_;
-    out_sum_ = out_sum_ > sum_limit? sum_limit : out_sum_<-sum_limit? -sum_limit:out_sum_;
+    out_sum_ = out_sum_ > out_limit? out_limit : out_sum_<-out_limit? -out_limit:out_sum_;
     joint_->control(0,0,0,0,out_sum_*dir_);
 }
 /*

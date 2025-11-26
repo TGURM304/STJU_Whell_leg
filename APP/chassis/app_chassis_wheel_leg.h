@@ -18,6 +18,7 @@
 namespace wheel_leg {
 struct chassis_state {
     float S, dot_S, phi, dot_phi;//轮两点连线中点的位移，yaw轴
+    float real_phi;
     float theta_ll, dot_theta_ll, theta_lr, dot_theta_lr;//腿的左边倾角，腿的右边倾角
     float theta_b ,dot_theta_b;//车体的倾角
     float leg_phi_l, leg_phi_r;
@@ -45,7 +46,8 @@ struct chassis_target {
     float32_t left_dis, right_dis;
     float32_t left_ver, right_ver;
     float32_t body_S, body_ver;
-    float32_t target_yaw;
+    float32_t old_body_S;
+    float32_t delta_yaw, target_yaw_gro, real_target_yaw;
     chassis_flag my_chassis_flag;
     LQR_flag my_LQR_flag;
 };
@@ -67,7 +69,7 @@ typedef enum {
             memcpy(static_K_,static_K,sizeof(float32_t)*40);
         }
         void wheel_leg_init() ;
-        void wheel_leg_update(float32_t height, float32_t yaw, float32_t speed, chassis_flag c_flag_, LQR_flag l_flag);
+        void wheel_leg_update(float32_t height, float32_t yaw_gro, float32_t speed, chassis_flag c_flag_, LQR_flag l_flag);
         void wheel_leg_ctrl();
     private:
         void LQR_clc();

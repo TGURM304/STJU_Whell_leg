@@ -6,8 +6,8 @@
 #define APP_DEBUG_H
 
 namespace  AppDebug {
-    typedef enum { FREE_DEBUG, CHASSIS_OUTPUT, INS_RAW_DEG, INS_RAW_ACC, CHASSIS_STATE, DEBUG_TEMP } Debug_Output;
-inline Debug_Output DEBUG_TYPE = FREE_DEBUG;
+    typedef enum { FREE_DEBUG, CHASSIS_OUTPUT, INS_RAW_DEG, INS_RAW_ACC, CHASSIS_STATE, CHASSIS_TARGET, DEBUG_TEMP } Debug_Output;
+inline Debug_Output DEBUG_TYPE = CHASSIS_TARGET;
 };
 
 

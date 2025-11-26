@@ -15,7 +15,8 @@ void wheel_leg::SJTU_wheel_leg::state_update() {
     auto q = ary_state;
     p->leg_phi_l = left_leg_->my_leg_status_.phi0;
     p->leg_phi_r = right_leg_->my_leg_status_.phi0;
-    p->phi = ins_->yaw/180.f*PI_F32;
+    p->real_phi = ins_->yaw/180.f*PI_F32;//由于phi存在突变点，我们使用delta的形式来实现
+    p->phi = 0;
     p->dot_phi = ins_->raw.gyro[2];
     p->theta_b = ins_->roll/180.f*PI_F32;
     p->dot_theta_b = ins_->raw.gyro[0];
@@ -52,26 +53,43 @@ void wheel_leg::SJTU_wheel_leg::wheel_leg_init() {
     right_leg_->leg_init();
 }
 
-void wheel_leg::SJTU_wheel_leg::wheel_leg_update(float32_t height, float32_t yaw, float32_t speed, chassis_flag c_flag_, LQR_flag l_flag) {
-    my_target_.left_len = height;
-    my_target_.right_len = height;
+//所有状态的更新都在这里实现
+void wheel_leg::SJTU_wheel_leg::wheel_leg_update(float32_t height, float32_t yaw_gro, float32_t speed, chassis_flag c_flag_, LQR_flag l_flag) {
+    state_update();
+    //置标志位
     my_target_.my_chassis_flag = c_flag_;
     my_target_.my_LQR_flag = l_flag;
+    //控制高度
+    my_target_.left_len = height;
+    my_target_.right_len = height;
+    //设定目标target
+    my_target_.body_S += speed/1000;
     my_target_.body_ver = speed;
-    my_target_.target_yaw += yaw;
-    if(my_target_.target_yaw > PI_F32/2) my_target_.target_yaw = PI_F32/2;
-    else if (my_target_.target_yaw < -PI_F32/2) my_target_.target_yaw = -PI_F32/2;
+    //设置目标的yaw，这个比较复杂
+    my_target_.real_target_yaw += yaw_gro/1000;
+    if(my_target_.real_target_yaw > PI_F32) my_target_.real_target_yaw -= 2*PI_F32;
+    else if(my_target_.real_target_yaw < -PI_F32) my_target_.real_target_yaw += 2*PI_F32;
+
+    my_target_.delta_yaw = my_target_.real_target_yaw - my_state_.real_phi;
+    if(my_target_.delta_yaw > PI_F32)
+        my_target_.delta_yaw -= 2*PI_F32;
+    else if(my_target_.delta_yaw < -PI_F32)
+        my_target_.delta_yaw += 2*PI_F32;
+    my_target_.target_yaw_gro = yaw_gro;
+    //更新到数组
     ary_target[0] = my_target_.body_S;
     ary_target[1] = my_target_.body_ver;
-    ary_target[2] = my_target_.target_yaw;
+    ary_target[2] = my_target_.delta_yaw;
+    ary_target[3] = my_target_.target_yaw_gro;
+    if(AppDebug::DEBUG_TYPE == AppDebug::CHASSIS_TARGET) {
+        bsp_uart_printf(E_UART_DEBUG,"%f,%f,%f,%f\n",ary_target[0],ary_target[1],ary_target[2],ary_target[3]);
+    }
 }
 
 void wheel_leg::SJTU_wheel_leg::wheel_leg_ctrl() {
-    state_update();
     LQR_clc();
     my_output_.Force_stand_l = FORWARD + left_pid_.update(my_state_.left_len,my_target_.left_len);
     my_output_.Force_stand_r = FORWARD + right_pid_.update(my_state_.right_len,my_target_.right_len);
-
     if(my_target_.my_chassis_flag == E_stand) {
         left_leg_->leg_ctrl(my_output_.Tlw_l,my_output_.Tbl_l,my_output_.Force_stand_l);
         right_leg_->leg_ctrl(my_output_.Tlw_r,my_output_.Tbl_r,my_output_.Force_stand_r);

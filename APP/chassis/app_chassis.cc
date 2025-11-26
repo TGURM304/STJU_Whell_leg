@@ -77,7 +77,7 @@ wheel_leg_motor::dynamic left_dynamic(&left_dji, 1);
 chassis_Leg::App_Leg right_leg(&right_A, &right_E, &right_dynamic);
 chassis_Leg::App_Leg left_leg(&left_A, &left_E, &left_dynamic);
 const app_ins_data_t *ins = app_ins_data();
-float static_K[40] = {-3.14537f, -2.8707f, 0.623247f, 0.233007f, -4.36555f, -1.10713f, -2.16955f, -0.155681f, -0.82658f, -0.10262f, -3.14537f, -2.8707f, -0.623247f, -0.233007f, -2.16955f, -0.155681f, -4.36555f, -1.10713f, -0.82658f, -0.10262f, -0.326573f, -0.270589f, -2.66675f, -1.57233f, 0.565233f, -0.135067f, -0.678189f, 0.198023f, -1.89352f, -0.71604f, -0.326573f, -0.270589f, 2.66675f, 1.57233f, -0.678189f, 0.198023f, 0.565233f, -0.135067f, -1.89352f, -0.71604f};
+float static_K[40] = {-2.23564f, -2.52152f, 0.0447609f, -0.125415f, -4.35891f, -1.14233f, -2.00488f, -0.081984f, -0.927716f, -0.154168f, -2.23564f, -2.52152f, -0.0447609f, 0.125415f, -2.00488f, -0.081984f, -4.35891f, -1.14233f, -0.927716f, -0.154168f, -0.0621003f, -0.0425492f, -3.87247f, -2.15881f, 1.13805f, 0.0120799f, -0.564181f, 0.219407f, -3.05267f, -0.996201f, -0.0621003f, -0.0425492f, 3.87247f, 2.15881f, -0.564181f, 0.219407f, 1.13805f, 0.0120799f, -3.05267f, -0.996201f};
 
 wheel_leg::SJTU_wheel_leg my_chassis(&left_leg,&right_leg,ins,static_K);
 
@@ -87,11 +87,12 @@ void app_chassis_task(void *args) {
 	while(!app_sys_ready()) OS::Task::SleepMilliseconds(10);
     my_chassis.wheel_leg_init();
     while(true) {
-        if(rc->s_l == 1)my_chassis.wheel_leg_update(0.12,-(float32_t)(rc->reserved)/660.f/1000,(float32_t)(rc->rc_l[1])/660.f/1000,0,wheel_leg::E_stand,wheel_leg::E_LQR_static);
-        else my_chassis.wheel_leg_update(0.12,0,0,0,wheel_leg::E_waiting,wheel_leg::E_LQR_static);
+        if(rc->s_l == 1)
+            my_chassis.wheel_leg_update(0.12,-(float32_t)(rc->reserved)/660.f,(float32_t)(rc->rc_l[1])/330.f,wheel_leg::E_stand,wheel_leg::E_LQR_static);
+        else my_chassis.wheel_leg_update(0.12,0,0,wheel_leg::E_waiting,wheel_leg::E_LQR_static);
         my_chassis.wheel_leg_ctrl();
         if(AppDebug::DEBUG_TYPE == AppDebug::FREE_DEBUG)
-            bsp_uart_printf(E_UART_DEBUG,"%d,%d,%d\n",rc->rc_l[0],rc->rc_l[1],rc->reserved);
+            bsp_uart_printf(E_UART_DEBUG,"%f,%f\n",(float32_t)(rc->reserved)/660.f,(float32_t)(rc->rc_l[1])/660.f);
 	    OS::Task::SleepMilliseconds(1);
 	}
 }

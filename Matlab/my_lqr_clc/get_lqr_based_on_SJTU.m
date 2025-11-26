@@ -175,8 +175,8 @@ temp4 = write_data_b(jacobi_B,1,1,0.1,0.1);
 %%修改Q矩阵和R矩阵
 %S dot_S phi dot_phi tehta_ll dot_theta_ll theta_lr dot_theta_lr theta_b dot_theta_b
 %T_lwl T_lwr T_bll T_blr
-matrix_Q = diag([20 1 1 1 2 1 2 1 5 1]);  % diag函数用于产生对角矩阵
-matrix_R = diag([1 1 1 1]);
+matrix_Q = diag([10 2 15 3 4 1 4 1 8 1]);  % diag函数用于产生对角矩阵
+matrix_R = diag([1 1 0.5 0.5]);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %定腿长
