@@ -39,6 +39,11 @@ typedef enum{
     E_chassis_move = 0x01 << 1,
     E_chassis_disable = 0x01 << 2
 }chassis_move_flag;
+typedef enum {
+    E_normal,
+    E_slip,
+    E_fly
+}suspect_state;
 typedef struct {
     float32_t height;
     float32_t yaw_gro;
@@ -67,6 +72,7 @@ typedef struct {
     chassis_move_flag cmf;
     main_flag mf;
     LQR_flag lqr_flag;
+    suspect_state s_state;
 }chassis_flags;
 struct chassis_target {
     float32_t height;
@@ -80,7 +86,7 @@ class SJTU_wheel_leg {
     public:
         SJTU_wheel_leg();
         SJTU_wheel_leg(chassis_Leg::App_Leg *left_leg, chassis_Leg::App_Leg *right_leg,const app_ins_data_t *ins, float32_t *static_K)
-            : left_leg_(left_leg), right_leg_(right_leg), ins_(ins), left_filter_(10),right_filter_(10)
+            : left_leg_(left_leg), right_leg_(right_leg), ins_(ins), left_filter_(10),right_filter_(10), theta_b_filter_(10)
             ,left_pid_(LEN_KP,0,LEN_KD,LEN_OUT_LIMIT,LEN_I_LIMIT), right_pid_(LEN_KP,0,LEN_KD,LEN_OUT_LIMIT,LEN_I_LIMIT)
         {
             memcpy(static_K_,static_K,sizeof(float32_t)*40);
@@ -101,6 +107,7 @@ class SJTU_wheel_leg {
         //底盘状态
         //todo:底盘状态观测器
         chassis_state my_state_;
+        chassis_state old_state_;
         chassis_output my_output_;
         chassis_target my_target_;
         //用于计算Matrix
@@ -110,6 +117,7 @@ class SJTU_wheel_leg {
         Controller::PID right_pid_;
         Algorithm::AverageFilter left_filter_;
         Algorithm::AverageFilter right_filter_;
+        Algorithm::AverageFilter theta_b_filter_;
         chassis_flags my_flags_;
         float32_t static_K_[40];
     };

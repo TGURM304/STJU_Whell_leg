@@ -18,7 +18,7 @@ void wheel_leg::SJTU_wheel_leg::state_update() {
     p->phi = 0;
     p->dot_phi = ins_->raw.gyro[2];
     p->theta_b = ins_->roll/180.f*PI_F32;
-    p->dot_theta_b = ins_->raw.gyro[0];
+    p->dot_theta_b = theta_b_filter_.update(ins_->raw.gyro[0]);
 
     p->old_S = p->S;
     p->S = (left_leg_->my_leg_status_.distance+right_leg_->my_leg_status_.distance)/2.f;
@@ -76,8 +76,25 @@ void wheel_leg::SJTU_wheel_leg::delta_clc(update_pkg *pkg){
         delta_yaw -= 2*PI_F32;
     else if(delta_yaw < -PI_F32)
         delta_yaw += 2*PI_F32;
-    ary_delta[0] = my_target_.body_S - my_state_.S;
-    ary_delta[1] = my_target_.body_ver - my_state_.kalman_dot_S ;
+    if(my_flags_.s_state == E_normal) {
+        ary_delta[0] = my_target_.body_S - my_state_.S;
+        ary_delta[1] = my_target_.body_ver - my_state_.kalman_dot_S ;
+        if( abs(ary_delta[1]) > 0.5f && abs(my_state_.kalman_dot_S)  > 0.3f) {
+            my_flags_.s_state = E_slip;
+            ary_delta[0] = 0;
+            ary_delta[1] *= 0.2;
+        }
+    }
+    else if(my_flags_.s_state == E_slip) {
+        ary_delta[0] = 0;
+        ary_delta[1] = (my_target_.body_ver - my_state_.kalman_dot_S)*0.2f;
+        my_target_.body_S = my_state_.S;
+        if(abs(my_target_.body_ver - my_state_.kalman_dot_S) < 0.2f) {
+            my_flags_.s_state = E_normal;
+            ary_delta[0] = my_target_.body_S - my_state_.S;
+            ary_delta[1] = my_target_.body_ver - my_state_.kalman_dot_S ;
+        }
+    }
     ary_delta[2] = delta_yaw;
     ary_delta[3] = my_target_.target_yaw_gro - my_state_.dot_phi;
     ary_delta[4] = -my_state_.theta_ll;
@@ -86,6 +103,11 @@ void wheel_leg::SJTU_wheel_leg::delta_clc(update_pkg *pkg){
     ary_delta[7] = -my_state_.dot_theta_lr;
     ary_delta[8] = -my_state_.theta_b;
     ary_delta[9] = -my_state_.dot_theta_b;
+    if(AppDebug::DEBUG_TYPE == AppDebug::CHASSIS_DELTA) {
+        bsp_uart_printf(E_UART_DEBUG,"%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",
+            ary_delta[0],ary_delta[1],ary_delta[2],ary_delta[3],ary_delta[4],
+            ary_delta[5],ary_delta[6],ary_delta[7],ary_delta[8],ary_delta[9]);
+    }
 }
 
 //所有状态的更新都在这里实现
@@ -112,6 +134,9 @@ void wheel_leg::SJTU_wheel_leg::wheel_leg_ctrl() {
     if(AppDebug::DEBUG_TYPE == AppDebug::CHASSIS_OUTPUT) {
         auto p = my_output_;
         bsp_uart_printf(E_UART_DEBUG,"%f,%f,%f,%f\n",p.Tlw_l,p.Tlw_r,p.Tbl_l,p.Tbl_r);
+    }
+    if(AppDebug::DEBUG_TYPE == AppDebug::CHASSIS_STATE) {
+
     }
 }
 

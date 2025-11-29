@@ -34,19 +34,6 @@ void chassis_Leg::App_Leg::leg_vmc_ctrl() {
     Matrixf<2,2> Trans(data);
     float32_t vector[2] = {my_out_put_.force,my_out_put_.Tbl};
     Matrixf<2,1> target(vector);
-    // Matrixf<2,2> Jacobi(data);
-    // Matrixf<2,2> Jacobi_T = Jacobi.trans();
-
-    // data[0] = 0;
-    // data[1] = -1/my_leg_status_.L0;
-    // data[2] = 1;
-    // data[3] = 0;
-    // Matrixf<2,2> M(data);
-    // data[0] = cos(-my_leg_status_.phi0+PI/2);
-    // data[1] = -sin(-my_leg_status_.phi0+PI/2);
-    // data[2] = sin(-my_leg_status_.phi0+PI/2);
-    // data[3] = cos(-my_leg_status_.phi0+PI/2);
-    // Matrixf<2,2> R(data);
     Matrixf<2,1> answer;
     answer = Trans*target;
     my_out_put_.tor_JA = answer[0][0];
