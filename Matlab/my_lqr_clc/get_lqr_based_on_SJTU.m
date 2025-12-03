@@ -202,27 +202,6 @@ for i = 1:times
         result(:,:,(i-1)*times+j) = K;
     end
 end
-
-%%查看某个元素的值（三维）
-% data1 = result(1,1,ptr_z);
-% Z = zeros(15);
-% for i = 1:15
-%     for j = 1:15
-%         Z(j,i) = data1((i-1)*15+j);
-%     end
-% end
-% disp(Z);
-% x = 0.1:0.01:0.24;
-% y = 0.1:0.01:0.24;
-% [X,Y] = meshgrid(x,y);
-% surf(X,Y,Z);
-% shading interp;
-% colormap(parula);
-% colorbar;
-% xlabel('x'); ylabel('y'); zlabel('z');
-% mesh(X, Y, Z, 'EdgeColor', 'k', 'LineWidth', 0.5); % 叠加网格
-%%
-
 %%求二维拟合的曲面函数
 coeffMatrix = zeros(40, 6);
 for ptr_i = 1:4
@@ -240,27 +219,20 @@ for ptr_i = 1:4
         ft = fittype('poly22');   % poly11 poly22 poly33 都可以
         fit_answer = fit([x, y], z,ft);
         coeffs = coeffvalues(fit_answer);
-        % coeffs(1) = p00 常数
-        % coeffs(2) = p10 x
-        % coeffs(3) = p01 y
-        % coeffs(4) = p20 xx
-        % coeffs(5) = p11 xy
-        % coeffs(6) = p02 yy
         for i = 1:6
             coeffMatrix((ptr_i-1)*10+ptr_j,i) = coeffs(i);
         end
     end
 end
 disp(coeffMatrix);
-
+dynamic_formula(40,6,10,coeffMatrix)
 numFits = size(coeffMatrix,1); % 40
 cppStrings = strings(numFits,1);
 
 % poly22 对应变量名顺序（假设按照你需要的命名）
-varNames = {'x0_y0','x0_y1','x1_y0','x0_y2','x1_y1','x2_y2'};
-
+varNames = {'x0_y0','x1_y0','x0_y1','x2_y0','x1_y1','x0_y2'};
 for k = 1:numFits
-    str = "dynamic[" + (k-1) + "] = ";
+    str = "dynamic[" + (k-1) + "] = "; 
     for c = 1:6
         coef = coeffMatrix(k,c);
         % 保留3位小数并加 f
@@ -274,9 +246,6 @@ for k = 1:numFits
     end
     cppStrings(k) = str;
 end
-
-% 显示前几行结果
-disp(cppStrings(1:5))
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 [K, S, E] = lqr(temp3,temp4,matrix_Q,matrix_R);
@@ -335,4 +304,20 @@ function mat2c(M, varname)
     fprintf('};\n');
 end
 
+function dynamic_formula(rows,clons,line_length,matrix)
+    itemsPerLine = line_length;
 
+fprintf("data_ary[%d] = {\n",rows*clons);
+for i = 1:rows
+    for j = 1:clons
+        fprintf("%.4ff",matrix(i,j));
+        if (i < rows || j < clons)
+            fprintf(',');
+        end
+        if (mod((i-1)*clons + j, itemsPerLine) == 0)
+            fprintf('\n')
+        end
+    end
+end
+fprintf("\n};\n");
+end

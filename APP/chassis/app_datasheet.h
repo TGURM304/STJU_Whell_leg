@@ -25,4 +25,7 @@
 
 #define MOTOR_GEAR (3591.0f/187.0f)
 
+extern float static_K[40];
+extern float dynamic_K[240];
+
 #endif //APP_WHEEL_LEG_DATASHEET_H

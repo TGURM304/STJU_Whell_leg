@@ -54,6 +54,7 @@ typedef struct {
 
 struct chassis_state {
     float S, dot_S, old_S, phi, dot_phi;//轮两点连线中点的位移，yaw轴
+    float body_acc;
     float kalman_dot_S;
     float real_phi;
     float theta_ll, dot_theta_ll, theta_lr, dot_theta_lr;//腿的左边倾角，腿的右边倾角
@@ -85,33 +86,37 @@ struct chassis_target {
 class SJTU_wheel_leg {
     public:
         SJTU_wheel_leg();
-        SJTU_wheel_leg(chassis_Leg::App_Leg *left_leg, chassis_Leg::App_Leg *right_leg,const app_ins_data_t *ins, float32_t *static_K)
+        SJTU_wheel_leg(chassis_Leg::App_Leg *left_leg, chassis_Leg::App_Leg *right_leg,const app_ins_data_t *ins, float32_t *static_K, float32_t *fit_cof)
             : left_leg_(left_leg), right_leg_(right_leg), ins_(ins), left_filter_(10),right_filter_(10), theta_b_filter_(10)
             ,left_pid_(LEN_KP,0,LEN_KD,LEN_OUT_LIMIT,LEN_I_LIMIT), right_pid_(LEN_KP,0,LEN_KD,LEN_OUT_LIMIT,LEN_I_LIMIT)
         {
             memcpy(static_K_,static_K,sizeof(float32_t)*40);
+            memcpy(fit_cof_,fit_cof,sizeof(float32_t)*240);
         }
         void wheel_leg_init() ;
         void wheel_leg_update(update_pkg *pkg);
         void wheel_leg_ctrl();
+    chassis_state my_state_;
+    chassis_state old_state_;
+    chassis_output my_output_;
     private:
         void LQR_clc();
         void state_update();
         void target_update(update_pkg *pkg);
         void flag_update(update_pkg *pkg);
         void delta_clc(update_pkg *pkg);
+        void fit_clc(float32_t left_len, float32_t right_len);
         //承接底层框架
         chassis_Leg::App_Leg *left_leg_;
         chassis_Leg::App_Leg *right_leg_;
         const app_ins_data_t *ins_;
         //底盘状态
         //todo:底盘状态观测器
-        chassis_state my_state_;
-        chassis_state old_state_;
-        chassis_output my_output_;
         chassis_target my_target_;
         //用于计算Matrix
         float32_t ary_delta[10];
+        float32_t static_K_[40];
+        float32_t fit_cof_[240];
         //控制器与滤波器
         Controller::PID left_pid_;
         Controller::PID right_pid_;
@@ -119,7 +124,7 @@ class SJTU_wheel_leg {
         Algorithm::AverageFilter right_filter_;
         Algorithm::AverageFilter theta_b_filter_;
         chassis_flags my_flags_;
-        float32_t static_K_[40];
+
     };
 }
 

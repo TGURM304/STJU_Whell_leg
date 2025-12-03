@@ -12,6 +12,7 @@
 
 void wheel_leg::SJTU_wheel_leg::state_update() {
     auto p = &my_state_;
+    memcpy(&old_state_, &my_state_, sizeof(chassis_state));
     p->leg_phi_l = left_leg_->my_leg_status_.phi0;
     p->leg_phi_r = right_leg_->my_leg_status_.phi0;
     p->real_phi = ins_->yaw/180.f*PI_F32;//由于phi存在突变点，我们使用delta的形式来实现
@@ -23,6 +24,7 @@ void wheel_leg::SJTU_wheel_leg::state_update() {
     p->old_S = p->S;
     p->S = (left_leg_->my_leg_status_.distance+right_leg_->my_leg_status_.distance)/2.f;
     p->dot_S = (left_leg_->my_leg_status_.ver+right_leg_->my_leg_status_.ver)/2;
+    p->body_acc = ins_->raw.accel[1];
     //todo:卡尔曼滤波器
     p->kalman_dot_S = p->dot_S;
 
@@ -69,6 +71,16 @@ void wheel_leg::SJTU_wheel_leg::flag_update(update_pkg *pkg){
     my_flags_.lqr_flag = pkg->lqr_flag;
 }
 
+void wheel_leg::SJTU_wheel_leg::fit_clc(float32_t left_len, float32_t right_len) {
+    float32_t x0y0 = 1.0f, x1y0 = left_len, x0y1 = right_len;
+    float32_t x2y0 = left_len*left_len, x1y1 = left_len*right_len, x0y2 = right_len*right_len;
+    for(int i = 0; i< 40; i++) {
+        float32_t K = fit_cof_[i*6 + 0]*x0y0 + fit_cof_[i*6 + 1]*x1y0 + fit_cof_[i*6 + 2]*x0y1
+                    + fit_cof_[i*6 + 3]*x2y0 + fit_cof_[i*6 + 4]*x1y1 + fit_cof_[i*6 + 5]*x0y2;
+        dynamic_K[i] = K;
+    }
+}
+
 void wheel_leg::SJTU_wheel_leg::delta_clc(update_pkg *pkg){
     float32_t delta_yaw;
     delta_yaw = my_target_.target_yaw - my_state_.real_phi;
@@ -76,25 +88,27 @@ void wheel_leg::SJTU_wheel_leg::delta_clc(update_pkg *pkg){
         delta_yaw -= 2*PI_F32;
     else if(delta_yaw < -PI_F32)
         delta_yaw += 2*PI_F32;
-    if(my_flags_.s_state == E_normal) {
-        ary_delta[0] = my_target_.body_S - my_state_.S;
-        ary_delta[1] = my_target_.body_ver - my_state_.kalman_dot_S ;
-        if( abs(ary_delta[1]) > 0.5f && abs(my_state_.kalman_dot_S)  > 0.3f) {
-            my_flags_.s_state = E_slip;
-            ary_delta[0] = 0;
-            ary_delta[1] *= 0.2;
-        }
-    }
-    else if(my_flags_.s_state == E_slip) {
-        ary_delta[0] = 0;
-        ary_delta[1] = (my_target_.body_ver - my_state_.kalman_dot_S)*0.2f;
-        my_target_.body_S = my_state_.S;
-        if(abs(my_target_.body_ver - my_state_.kalman_dot_S) < 0.2f) {
-            my_flags_.s_state = E_normal;
-            ary_delta[0] = my_target_.body_S - my_state_.S;
-            ary_delta[1] = my_target_.body_ver - my_state_.kalman_dot_S ;
-        }
-    }
+    ary_delta[0] = my_target_.body_S - my_state_.S;
+    ary_delta[1] = my_target_.body_ver - my_state_.kalman_dot_S ;
+    // if(my_flags_.s_state == E_normal) {
+    //     ary_delta[0] = my_target_.body_S - my_state_.S;
+    //     ary_delta[1] = my_target_.body_ver - my_state_.kalman_dot_S ;
+    //     if( abs(ary_delta[1]) > 0.5f && abs(my_state_.kalman_dot_S)  > 0.3f) {
+    //         my_flags_.s_state = E_slip;
+    //         ary_delta[0] = 0;
+    //         ary_delta[1] *= 0.2;
+    //     }
+    // }
+    // else if(my_flags_.s_state == E_slip) {
+    //     ary_delta[0] = 0;
+    //     ary_delta[1] = (my_target_.body_ver - my_state_.kalman_dot_S)*0.2f;
+    //     my_target_.body_S = my_state_.S;
+    //     if(abs(my_target_.body_ver - my_state_.kalman_dot_S) < 0.2f) {
+    //         my_flags_.s_state = E_normal;
+    //         ary_delta[0] = my_target_.body_S - my_state_.S;
+    //         ary_delta[1] = my_target_.body_ver - my_state_.kalman_dot_S ;
+    //     }
+    // }
     ary_delta[2] = delta_yaw;
     ary_delta[3] = my_target_.target_yaw_gro - my_state_.dot_phi;
     ary_delta[4] = -my_state_.theta_ll;
@@ -136,7 +150,11 @@ void wheel_leg::SJTU_wheel_leg::wheel_leg_ctrl() {
         bsp_uart_printf(E_UART_DEBUG,"%f,%f,%f,%f\n",p.Tlw_l,p.Tlw_r,p.Tbl_l,p.Tbl_r);
     }
     if(AppDebug::DEBUG_TYPE == AppDebug::CHASSIS_STATE) {
-
+        bsp_uart_printf(E_UART_DEBUG,"%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",
+            my_state_.S,my_state_.dot_S,my_state_.phi,my_state_.dot_phi,
+            my_state_.theta_ll,my_state_.dot_theta_ll,
+            my_state_.theta_lr,my_state_.dot_theta_lr,
+            my_state_.theta_b,my_state_.dot_theta_b);
     }
 }
 
@@ -147,14 +165,15 @@ void wheel_leg::SJTU_wheel_leg::LQR_clc() {
     if(state_flag == E_LQR_static) {
         Matrixf<4,10> Matrix_K(static_K_);
         Matrix_answer = Matrix_K*Matrix_delta;
-        my_output_.Tlw_l = Matrix_answer[0][0];
-        my_output_.Tlw_r = Matrix_answer[1][0];
-        my_output_.Tbl_l = Matrix_answer[2][0];
-        my_output_.Tbl_r = Matrix_answer[3][0];
     }
     else if(state_flag == E_LQR_dynamic) {
-        //todo:完成动态矩阵
-        return;
+        fit_clc(my_state_.left_len, my_state_.right_len);
+        Matrixf<4,10> Matrix_K(dynamic_K);
+        Matrix_answer = Matrix_K*Matrix_delta;
     }
+    my_output_.Tlw_l = Matrix_answer[0][0];
+    my_output_.Tlw_r = Matrix_answer[1][0];
+    my_output_.Tbl_l = Matrix_answer[2][0];
+    my_output_.Tbl_r = Matrix_answer[3][0];
 }
 

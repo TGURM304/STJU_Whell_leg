@@ -77,9 +77,8 @@ wheel_leg_motor::dynamic left_dynamic(&left_dji, 1);
 chassis_Leg::App_Leg right_leg(&right_A, &right_E, &right_dynamic);
 chassis_Leg::App_Leg left_leg(&left_A, &left_E, &left_dynamic);
 const app_ins_data_t *ins = app_ins_data();
-float static_K[40] = {-2.23564f, -2.52152f, 0.0447609f, -0.125415f, -4.35891f, -1.14233f, -2.00488f, -0.081984f, -0.927716f, -0.154168f, -2.23564f, -2.52152f, -0.0447609f, 0.125415f, -2.00488f, -0.081984f, -4.35891f, -1.14233f, -0.927716f, -0.154168f, -0.0621003f, -0.0425492f, -3.87247f, -2.15881f, 1.13805f, 0.0120799f, -0.564181f, 0.219407f, -3.05267f, -0.996201f, -0.0621003f, -0.0425492f, 3.87247f, 2.15881f, -0.564181f, 0.219407f, 1.13805f, 0.0120799f, -3.05267f, -0.996201f};
 
-wheel_leg::SJTU_wheel_leg my_chassis(&left_leg,&right_leg,ins,static_K);
+wheel_leg::SJTU_wheel_leg my_chassis(&left_leg,&right_leg,ins,static_K,dynamic_K);
 
 auto rc = bsp_rc_data();
 wheel_leg::update_pkg pkg;
@@ -91,7 +90,7 @@ void app_chassis_task(void *args) {
         if(rc->s_l == 1) {
             pkg.c_flag_ = wheel_leg::main_flag::E_stand;
             pkg.height = 0.12;
-            pkg.lqr_flag = wheel_leg::LQR_flag::E_LQR_static;
+            pkg.lqr_flag = wheel_leg::LQR_flag::E_LQR_dynamic;
             pkg.speed = (float32_t)rc->rc_l[1]/660.f*0.5f;
             pkg.yaw_gro = (float32_t)rc->reserved/660.f;
         }
@@ -106,12 +105,16 @@ void app_chassis_task(void *args) {
         my_chassis.wheel_leg_ctrl();
         if(AppDebug::DEBUG_TYPE == AppDebug::FREE_DEBUG)
             bsp_uart_printf(E_UART_DEBUG,"%f,%f\n",(float32_t)(rc->reserved)/660.f,(float32_t)(rc->rc_l[1])/660.f);
+        if(AppDebug::DEBUG_TYPE == AppDebug::CHASSIS_KALMAN_RAW && rc->s_r == 1) {
+            auto p = &my_chassis.my_state_;
+            auto q = &my_chassis.old_state_;
+            bsp_uart_printf(E_UART_DEBUG,"%f,%f,%f,%f,%f,%f,%f,%f\n",p->S,q->S,p->dot_S,q->dot_S,p->body_acc,q->body_acc,my_chassis.my_output_.Tlw_l,my_chassis.my_output_.Tlw_r);
+        }
 	    OS::Task::SleepMilliseconds(1);
 	}
 }
 
 void app_chassis_init() {
-
 }
 
 #endif
